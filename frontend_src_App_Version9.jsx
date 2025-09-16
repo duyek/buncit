@@ -1,0 +1,120 @@
+import React, { useState } from 'react';
+
+const API = "http://localhost:3001";
+
+function App() {
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [code, setCode] = useState("");
+  const [userName, setUserName] = useState("");
+  const [month, setMonth] = useState("");
+  const [months, setMonths] = useState([]);
+  const [tableData, setTableData] = useState([]);
+  const [excelFile, setExcelFile] = useState(null);
+  const [kodeFile, setKodeFile] = useState(null);
+
+  // Upload Kode Akses Excel
+  const handleUploadKode = async () => {
+    const formData = new FormData();
+    formData.append("file", kodeFile);
+    const res = await fetch(API + "/upload-kode-akses", {
+      method: "POST",
+      body: formData
+    });
+    if (res.ok) {
+      alert("Kode akses diupdate!");
+    }
+  };
+
+  // Login
+  const handleLogin = async () => {
+    const res = await fetch(API + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setUserName(data.nama);
+      setLoggedIn(true);
+    } else alert("Kode akses salah");
+  };
+
+  // Upload Excel Insentif
+  const handleUpload = async () => {
+    const formData = new FormData();
+    formData.append("file", excelFile);
+    formData.append("month", month);
+    const res = await fetch(API + "/upload-excel", {
+      method: "POST",
+      body: formData
+    });
+    if (res.ok) {
+      alert("Upload berhasil");
+      if (!months.includes(month)) setMonths([...months, month]);
+    }
+  };
+
+  // Ambil data insentif
+  const handleGetData = async () => {
+    const res = await fetch(API + `/incentive?month=${month}`);
+    const data = await res.json();
+    setTableData(data);
+  };
+
+  return (
+    <div>
+      <h2>Payroll System</h2>
+      <div>
+        <h3>Upload File Kode Akses (Excel)</h3>
+        <input type="file" accept=".xlsx,.xls" onChange={e => setKodeFile(e.target.files[0])} />
+        <button onClick={handleUploadKode}>Upload Kode Akses</button>
+      </div>
+      {!loggedIn ? (
+        <div>
+          <h3>Login</h3>
+          <input value={code} onChange={e => setCode(e.target.value)} placeholder="Kode Akses" />
+          <button onClick={handleLogin}>Login</button>
+        </div>
+      ) : (
+        <div>
+          <p>Selamat datang, <b>{userName}</b></p>
+          <h3>Upload & Lihat Insentif Gaji</h3>
+          <div>
+            <input type="text" placeholder="Periode/Bulan" value={month} onChange={e => setMonth(e.target.value)} />
+            <input type="file" accept=".xlsx,.xls" onChange={e => setExcelFile(e.target.files[0])} />
+            <button onClick={handleUpload}>Upload Excel Insentif</button>
+          </div>
+          <div>
+            <label>Pilih Bulan: </label>
+            <select value={month} onChange={e => setMonth(e.target.value)}>
+              {months.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <button onClick={handleGetData}>Tampilkan Data</button>
+          </div>
+          <table border="1">
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Jumlah Lembur</th>
+                <th>Total Point</th>
+                <th>Hasil Insentif</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableData.map((row, i) => (
+                <tr key={i}>
+                  <td>{row.nama}</td>
+                  <td>{row.jumlah_lembur}</td>
+                  <td>{row.total_point}</td>
+                  <td>{row.hasil_insentif}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default App;
